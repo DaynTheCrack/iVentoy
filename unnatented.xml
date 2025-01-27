@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="utf-8"?>
+<unattend xmlns="urn:schemas-microsoft-com:unattend">
+<component name="Microsoft-Windows-International-Core-WinPE" processorArchitecture="amd64" publicKeyToken="31bf3856ad364e35" language="neutral" versionScope="nonSxS">
+    <SetupUILanguage>
+        <UILanguage>fr-FR</UILanguage> <--Langue de l'interface installation-->
+    </SetupUILanguage>
+    <InputLocale>fr-FR</InputLocale> 
+    <UILanguage>fr-FR</UILanguage> 
+    <SystemLocale>fr-FR</SystemLocale> <--Langue du system-->
+    <UserLocale>fr-FR</UserLocale> <--Langue de l'utilisateur connecté-->
+</component>
+<DiskConfiguration>                
+    <Disk wcm:action="add"> <--Ajout partition-->
+        <CreatePartitions>						
+            <CreatePartition wcm:action="add">
+                <Extend>true</Extend> <--Prend tout l'espace-->
+                <Order>1</Order>
+                <Type>Primary</Type> <--Disque principale-->
+            </CreatePartition>
+        </CreatePartitions>
+        <ModifyPartitions>						
+            <ModifyPartition wcm:action="add">
+                <Active>true</Active>
+                <Format>NTFS</Format>
+                <Label>System</Label> <--Nom du disque : System-->
+                <Order>1</Order> <--Premier disque "boot"-->
+                <PartitionID>1</PartitionID>
+            </ModifyPartition>
+        </ModifyPartitions>
+        <DiskID>$$VT_WINDOWS_DISK_MAX_SIZE$$</DiskID> <--Prend le disque qui est le plus grand-->
+        <WillWipeDisk>true</WillWipeDisk> <--efface tout-->
+    </Disk>
+</DiskConfiguration>
+<ImageInstall> <--install image-->
+    <OSImage>
+        <InstallFrom>
+            <MetaData wcm:action="add">
+                <Value>1</Value> <--index de l'iso dans le fichier .wim-->
+                <Key>/IMAGE/INDEX</Key> <--ref-->
+            </MetaData>
+        </InstallFrom>
+        <InstallTo>
+            <DiskID>$$VT_WINDOWS_DISK_MAX_SIZE$$</DiskID> <--sur le plus gros disque-->
+            <PartitionID>1</PartitionID> <--d'ID 1-->
+        </InstallTo>
+    </OSImage>
+</ImageInstall>
+<component name="Microsoft-Windows-Shell-Setup" processorArchitecture="amd64" publicKeyToken="31bf3856ad364e35" language="neutral" versionScope="nonSxS">
+    <!-- Permet à l'utilisateur de choisir le nom de l'ordinateur -->
+    <ComputerName>*</ComputerName>
+    <!-- Définir le fuseau horaire pour la France -->
+    <TimeZone>Romance Standard Time</TimeZone>
+    <!-- Organisation -->
+    <RegisteredOrganization>BreizhNet</RegisteredOrganization>
+</component>
+<OOBE>
+    <HideEULAPage>true</HideEULAPage>  <!-- active licence -->
+    <NetworkLocation>Work</NetworkLocation> <!-- version -->
+    <ProtectYourPC>1</ProtectYourPC> <!-- Windows update + pare feu -->
+    <SkipMachineOOBE>true</SkipMachineOOBE> <!-- skip conf rso -->
+    <SkipUserOOBE>false</SkipUserOOBE> <!-- création utilisateur -->
+</OOBE>
