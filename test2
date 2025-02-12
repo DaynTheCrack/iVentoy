@@ -1,0 +1,69 @@
+# check_swap=cmd /c echo scripts\\centreon\\check_swap.ps1 -Warning $ARG1$ -Critical $ARG2$;exit($lastexitcode) | powershell.exe -command -
+# Vérification des arguments
+if ($args.Count -eq 0 -or $args[0] -eq "--help") {
+    Write-Output "Usage: check_swap -Warning {0<Percentage<100} -Critical {0<Percentage<100}"
+    Write-Output "Critical must be higher than Warning"
+    exit 2
+}
+
+# Initialisation des valeurs par défaut
+$Warning = -1
+$Critical = -1
+
+# Parsing des arguments
+for ($i = 0; $i -lt $args.Count; $i++) {
+    switch ($args[$i]) {
+        "-Warning" { $Warning = [int]$args[$i + 1]; $i++ }
+        "-Critical" { $Critical = [int]$args[$i + 1]; $i++ }
+    }
+}
+
+# Vérification des valeurs
+if ($Warning -eq -1 -and $Critical -eq -1) {
+    Write-Output "Erreur: Vous devez spécifier au moins -Warning ou -Critical"
+    exit 2
+}
+
+if ($Warning -ne -1 -and $Critical -eq -1) { $Critical = 100 }
+if ($Warning -eq -1 -and $Critical -ne -1) { $Warning = 100 }
+if ($Critical -le $Warning) {
+    Write-Output "Erreur: Critical doit être supérieur à Warning"
+    exit 2
+}
+
+# Correction de l'encodage pour éviter les caractères corrompus
+[Console]::OutputEncoding = [System.Text.Encoding]::UTF8
+
+# Récupération des infos système
+$content = systeminfo | Out-String
+
+
+# Extraction des valeurs de la mémoire virtuelle
+$pattern = "(?:Virtual Memory:|M.moire virtuelle.? ?:) (?:Max Size|Available|In Use|taille maximale|disponible|en cours d.utilisation):\s*(\d+.?\d+?) (?:MB|Mo)"
+$memoryValues = [RegEx]::Matches($content, $pattern) | ForEach-Object { $_.Groups[1].Value -replace "[ ,ÿ ]", "" }
+
+if ($memoryValues.Count -lt 3) {
+    Write-Output "Erreur: Impossible d'extraire les informations de mémoire virtuelle"
+    exit 2
+}
+
+# Transformation en nombres entiers
+$GBtotal =  [int]$memoryValues[0]/1000
+$GBavailable =  [int]$memoryValues[1]/1000
+$GBinuse =  [int]$memoryValues[2]/1000
+
+# Calcul des pourcentages
+$availablePerCentage = [math]::Round(($GBavailable/$GBtotal)*100)
+$inUsePerCentage = [math]::Round(($GBinuse / $GBtotal) * 100)
+
+# Évaluation des seuils
+if ($Critical -lt $inUsePerCentage) {
+    Write-Output ('Disk CRITICAL - Virtual Memory TOTAL: {0}GB USED: {1}GB ({2}%) FREE: {3}GB ({4}%)' -f $GBtotal, $GBinuse, $inUsePerCentage, $GBavailable, $availablePerCentage)
+    exit 2
+} elseif ($Warning -lt $inUsePerCentage) {
+    Write-Output ('Disk WARNING - Virtual Memory TOTAL: {0}GB USED: {1}GB ({2}%) FREE: {3}GB ({4}%)' -f $GBtotal, $GBinuse, $inUsePerCentage, $GBavailable, $availablePerCentage)
+    exit 1
+} else {
+    Write-Output ('Disk OK - Virtual Memory TOTAL: {0}GB USED: {1}GB ({2}%) FREE: {3}GB ({4}%)' -f $GBtotal, $GBinuse, $inUsePerCentage, $GBavailable, $availablePerCentage)
+    exit 0
+}
